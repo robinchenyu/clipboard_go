@@ -1,15 +1,9 @@
-// Copyright 2013 @atotto. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-// +build windows
-
-package clipboard_go
+package main
 
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
+	//	"fmt"
 	"log"
 	"os"
 	"syscall"
@@ -126,7 +120,7 @@ func readClipboard(filename string) (string, error) {
 	// hmif := new(infoHeader)
 	h2 := (*infoHeader)(unsafe.Pointer(pdata))
 
-	fmt.Println(h2)
+	//	fmt.Println(h2)
 	dataSize := h2.iSizeImage + fileHeaderLen + infoHeaderLen
 
 	if h2.iSizeImage == 0 && h2.iCompression == 0 {
@@ -163,7 +157,7 @@ func readClipboard(filename string) (string, error) {
 	// fmt.Println(data.Bytes()[1196900:])
 
 	// // imgio.Save("goimg.png", data, imgio.PNG)
-	saveAs(data, "testjpg.jpg")
+	saveAs(data, filename)
 
 	return "success", nil
 }
@@ -192,47 +186,22 @@ func saveAs(dat *bytes.Buffer, filename string) (string, error) {
 	if err := f.Close(); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("write file %s success", filename)
+	//	fmt.Println("write file %s success", filename)
 	return "succ", nil
 }
 
-func writeAll(text string) error {
-	r, _, err := openClipboard.Call(0)
-	if r == 0 {
-		return err
+func main() {
+	var text string
+	var err error
+	if len(os.Args) > 1 {
+		text, err = readClipboard(os.Args[1])
+	} else {
+		text, err = readClipboard("test.jpg")
 	}
-	defer closeClipboard.Call()
-
-	r, _, err = emptyClipboard.Call(0)
-	if r == 0 {
-		return err
-	}
-
-	data := syscall.StringToUTF16(text)
-
-	h, _, err := globalAlloc.Call(gmemFixed, uintptr(len(data)*int(unsafe.Sizeof(data[0]))))
-	if h == 0 {
-		return err
+	if err != nil {
+		log.Print(text)
+		panic(err)
 	}
 
-	l, _, err := globalLock.Call(h)
-	if l == 0 {
-		return err
-	}
-
-	r, _, err = lstrcpy.Call(l, uintptr(unsafe.Pointer(&data[0])))
-	if r == 0 {
-		return err
-	}
-
-	r, _, err = globalUnlock.Call(h)
-	if r == 0 {
-		return err
-	}
-
-	r, _, err = setClipboardData.Call(cfUnicodetext, h)
-	if r == 0 {
-		return err
-	}
-	return nil
+	// fmt.Print(text)
 }
